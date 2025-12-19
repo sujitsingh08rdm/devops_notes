@@ -1,0 +1,74 @@
+DEVOPS => devops is the set of practices that combines software developemnt ->  aim to automating and improving the flow of dev -> test -> deployment. So developement + operations.
+build faster, depeloyement safer and easy to maintain.
+
+PLAN -> DEVELOP -> BUILD -> TEST -> RELEASE -> DEPLOY -> MONITOR
+
+UNIX => 
+  navigation :
+    pwd -> present working directory
+    ls -> list all the files
+    cd -> change directory
+    cd Folder -> to go the Folder
+    cd .. -> goes directory back
+    cd / -> to goto root directory
+    ls -l -> to give details of the the files
+    ls -a -> to see hidden file
+    touch newFile.txt -> to create a file called newFile.txt
+    mkdir test -> to create a new folder/directory called test
+    rm filename.txt -> to delete a file 
+    rm -r foldername -> to delete a folder
+    find -name "fewfile.txt" -> to find the file with name "" 
+    grep "hello" newFile.txt -> to find a particular text "hello" inside a file
+
+SHELL SCRIPTING =>
+  script -> textfile -> series of commands of that the linux shell (bash) will execute.
+  nano firstScriptFile.sh -> nano mean to create a shellScript file.
+    /bin/bash
+    echo "Hello Word"
+
+  now exit to exit press ctrl+O -> enter -> ctrl+X
+
+  chmod +x firstScriptFile.sh -> to make the script file executeable 
+  ./firstScriptFile.sh -> to execute this script we will get "Hello Word"
+
+  nano variables.sh 
+  /bin/bash
+  name = "sangam"
+  echo "Hello $name!"
+
+  execute it we will get Hello sangam!
+
+  nano conditionals.sh
+  number=5
+  if [ $number -gt 5 ]; then 
+    echo "The number is greater then 5"
+  else
+    echo "The numebr is not greater then 5"
+
+  execute it 
+
+
+GIT => 
+git is a version control system that tracks changes in your source code.
+github is cloud based hosting service
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
