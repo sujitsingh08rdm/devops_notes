@@ -53,7 +53,21 @@ git is a version control system that tracks changes in your source code.
 github is cloud based hosting service
 
 
-
+git branch -> to show branch
+git branch "branchname" -> to create a new branch
+git switch "branchname" -> to switch a branch
+git switch -c "branchname" -> to create a branch and switch it
+git branch -d "branchname" -> to delete branch
+-now again do chanign a little code and try to publish the dev branch-
+git switch dev
+git add.
+git commit -m "change in dev"
+git push -u origin dev
+-now to merge the changes to main branch from dev branch we will-
+git switch main
+git merge dev 
+git push
+git pull -> to get sync the branch from cloud to local.
 
 
 
