@@ -70,18 +70,29 @@ git push
 git pull -> to get sync the branch from cloud to local.
 
 
+DOCKER => 
 
+docker run -d -p 8080:80 nginx , to create a container , if nginx is nout found locally it will download, -d to run in detach mode(background), -p port (client:docker) 
+docker ps -> show all the running containers
+docker ps -a -> -a list all containers
+docker stop <containerId> -> stop a running container
+docker rm <containerId> -> to delete a container from docker (container should be in stop state)
+docker prune -> to stop all the running docker containers
+docker rmi <imagename> -> to remove an image
+docker rmi -f <imagename> -> to remove an image by force
+docker build -t mern-backend . -> -t tags the image that we can reference later
+docker run -p 5000:5000 --name customName mern-backend ->  
+docker run -p 5000:5000 --name customName --env-file.env mern-backend -> read the env filecontent 
 
+same for frotnend
 
+DOCKER COMPOSE => 
 
-
-
-
-
-
-
-
-
+its a tool to comfig a multi-container app in a single-yaml
+ 
+docker-compose up --build -d -> to run docker
+docker-compose down -> to bring down everything 
+docker-compose logs -> to view logs
 
 
 
