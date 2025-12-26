@@ -312,7 +312,58 @@ now add deploy part to ci.yml file as
           EC2_APP_DIR: ${{ secrets.EC2_APP_DIR }}
 
 
+KUBERNETES => 
+
+Kubectl -> kubectl is a command-line tool that you (or CI/CD) use to talk to the Control Plane.
+
+Control Plane -> This is the brain of the Kubernetes cluster. It decides:
+    What containers should run
+    On which machine (node) they should run
+    When to restart them if they fail
+    How networking & scaling should behave
+Four main component inside control  Plane
+Component	  ->  Role
+API Server	->    Accepts commands (from kubectl)
+Scheduler	  -> Assigns pods to nodes
+Controller Manager -> 	Keeps cluster state correct (restart, scale, etc)
+etcd	->  Database that stores cluster info
+
+Kubelet-> This runs on every worker node (EC2, VM, server, etc.) and does what the control plane tells it. Starts and stops containers. Reports node & pod status back to the control plane. Watches for new pod assignments
+
+Pod -> Smallest building block (a simplest deloyment unit which is going to wrap a container).
+
+Deployment -> Its a manager of pods 
+
+Services -> services can locate pods via label selectors
 
 
+install kubectl -> winget install Kubernetes.kubectl -> kubectl version --client (to check version)
+install miniKube -> winget install Kubernetes.minikube -> minikube version (to see version)
+minikube start --driver=docker (this will run the cluster inside docker)
+ 
+lets do in our local machine
 
+docker build build -t mern-backend:dev ./server
+docker build build -t mern-frontend:dev ./client
+docker images
+
+now we have to laod these two images in our miniKube
+minikube image load mern-backend:dev
+minikube image load mern-frontend:dev
+minikube image ls -> to view all images
+
+now we have to create deployments for backend, we are going the set the env , get the pods , and forwrad the port , then create deployment for frontend  , expose the the frontend to use the 5173 port.
+
+kubectl create deployment backend --image=mern-backend:dev //one pod runnning your backedn
+kubectl set env deployment/backend CLOUDINARY_CLOUD_NAME=CLOUD NAME CLOUDINARY_API_KEY=KEY //set env
+
+kubectl get pods
+kubectl logs deploy/backend //to view logs
+
+kubectl port-forward deployment/backend 5000:5000 // to fowrward port
+backedn deployment done
+
+kubectl create deployment frontend --image=mern-frontend:dev
+kubectl set env deployment/frontend VITE_API_URL=http://localhost:5000
+kubectl expose deployment frontend --name=frontend-svc --port=80 target-port=5173 --type=NodePort
 
