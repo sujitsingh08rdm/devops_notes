@@ -68,6 +68,7 @@ git switch main
 git merge dev 
 git push
 git pull -> to get sync the branch from cloud to local.
+git checkout -b feature_one -> creates a new branch feature_one and switches to it immediately
 
 
 DOCKER => 
@@ -95,5 +96,164 @@ docker-compose down -> to bring down everything
 docker-compose logs -> to view logs
 
 
+CI =>
 
+create a .github folder then workflows then a ci.yml file then add below code in it.
+
+name: build-and-lint
+
+# triggers :define when this workflow should run
+# trigger on push to these branches
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+#define a job or multiple jobs
+
+jobs:
+  build-and-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install backend depedencies
+        working-directory: server
+        run: npm ci
+
+      - name: Lint backend
+        working-directory: server
+        run: npm run lint -- --max-warnings=0
+
+      - name: Install frontend depedencies
+        working-directory: client
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: client
+        run: npm run lint -- --max-warnings=35
+
+      - name: Build backend image
+        run: docker build -t backend ./server
+
+      - name: Build frontend image
+        run: docker build -t frontend ./client
+
+Now make changes and push the branch to github. Now we should see it. in actions.
+
+CD =>
+
+Now lets come to deployement using EC2 (change the network tab is the needed port 5000 and 5173 using tcp connection and then also create a keypair). create a instatace now loging to instance using 
+ssh -i "C:\Users\sujit\.ssh\keypair.pem" ec2-user@13.60.210.125
+
+install docker -> nano install_docker_amazon.sh 
+inside sh
+
+--------------------------------------------------------------------------------------------------
+#! /bin/bash
+
+echo "Updating system packages..."
+sudo dnf update -y
+
+echo "Installing Docker..."
+sudo dnf install -y docker
+
+echo "Adding ec2-user to docker group..."
+sudo usermod -aG docker ec2-user
+
+echo "Enabling and starting docker services..."
+sudo systemctl enable docker
+sudo systemctl start docker
+
+echo "Verifying docker installation..."
+docker --version || echo "DOcker not found in current sessions (re-login may be required)."
+
+echo ""
+echo "docker installations complete on Amazon linux 2023!"
+echo "IMPORTANT : Logout and log back in (or run 'newgrpdocker')"
+echo "so that 'ec2-user' can run docker without sudo."
+echo ""
+echo "After re-login, test with:"
+echo "docker run hello-world"
+
+--------------------------------------------------------------------------------------------------
+
+now make that script executeable 
+chmod +x install_docker_amazon.sh
+./install_docker_amazon.sh to execute it
+then exit then connect again
+docker --version to verify docker version
+now we have to install docker compose before that we have to make a directory
+sudo mkdir -p /usr/local/lib/docker/cli-plugins
+then 
+sudo curl -SL https://github.com/docker/compose/releases/download/v2.29.2/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+then make the file executeable 
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+docker compose version -> to verify docker compose isntalled or not 
+
+Now install git 
+sudo dnf install -y git
+
+Now we have to clone our repo-
+git clone https://github.com/sujitsingh08rdm/devops-ecommerce-practice.git app
+then nano server/.env then paste everything from your server env to this file and save
+same for client side
+now lets createa docker ignore file to exclude the files that are not needed in docker
+inside htat ignore file add below for both client and server in client coverage wont be there
+
+node_modules
+npm-debug.log
+Dockerfile
+.dockerignore
+.git
+.gitignore
+.env
+coverage
+dist
+
+chnage the preview in client to 
+"preview": "vite preview --host 0.0.0.0 --port 5173",
+
+add these two line in docker file 
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
+now update hte docker-compose file so taht it could pick the values from that arg
+this should be on docker-compose for client
+
+-----------------------------------------------------------------
+  frontend:
+    build:
+      context: ./client
+      args: 
+        VITE_API_URL: http:/3.36.2422.54:5000/api
+      container_name: frontend01
+      restart: always
+      ports:
+        - "5173:5173"
+      depends_on:
+        - backend
+
+-----------------------------------------------------------------
+
+then commit that to main branch and pull in our aws server using git pull
+for testing just press git branch 
+then git pull
+docker compose build -> it will start the build process
+docker compose up -d
+docker compose ps to view all the running instances
+docker compose logs to view logs 
+
+deployed sucessfully
+
+CD =>
 
