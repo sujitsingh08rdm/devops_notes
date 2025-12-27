@@ -506,3 +506,65 @@ same for frontend
 docker run -d --name demo-frontend --network mern-net -p 5173:5173 sujitsingh08rdm/mern-frontend:1.0.0
 docker ps to verify
 
+JENKINS => 
+Jenkins is a open source automation server, automates -> building app(compile, test, building images), deploying apps (push images, run ansible, start containers), running CI/CD pipelines.
+
+key concepts -> 
+JOB : basic unit of work in Jenkins, simple jobs -> freestyle jon, pipeline  job -> scripted job 
+BUILD -> the execution of that job, everytime a job is run its a build.
+PIPELINE -> series of stages and steps definded in code (jenkins file). ex. stages . checkout github repo -> install depedency -> build docker images -> push images -> deploy. 
+NODE/AGENT -> Machine where jenkins will runs the jobs, jenkins master node 
+PLUGIN -> extension that add new features, github, docker plugin
+WORKSPACE -> temporary folder where jenkins uses to run the job. contains source code.
+EXECUTOR -> Worker slot in jenkins job. determines how many jobs can run at once.
+
+JENKINS FLOW ->
+1. developer pushes the code to github
+2. jenkins going to detect the changes -> webhook(github notify jenkins) or via polling
+3. jenkins pulls the code 
+4. jenkins execute the job , freestyle job or pipeline job
+5. build results will be stored -> build logs, artifacts or status, numbered #1, #2
+6. notifications -> via email, slack, .etc
+
+
+Install jenkins in docker using
+docker pull jenkins/jenkins:lts
+
+run the container -> first port where jenkins we ui will be accesible second port is for jenkins agent, after port is the location where we will persist the data. 
+docker run -d --name jenkins -u 0 -p 8080:8080 -p 50000:50000 `
+  -v jenkins_home:/var/jenkins_home `
+  -v /var/run/docker.sock:/var/run/docker.sock `
+  jenkins/jenkins:lts
+
+Now install docker CLI inside the jenkins container
+docker exec -u 0 -it jenkins bash
+apt-get update && apt-get install -y docker.io
+usermod -aG docker jenkins
+exit
+
+restart jenkins container
+docker restart jenkins
+
+check if docker availe
+docker exec -it jenkins docker --version
+check container
+docker exec -it jenkins docker ps -a
+
+install docker compose binary
+docker exec -u 0 -it jenkins bash
+#create plugin directories
+mkdir -p /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins
+#install curl if missing
+apt-get update && apt-get install -y curl
+#down compose v2 binary for this coantaier OS/ARCH
+curl -fL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/libexec/docker/cli-plugins/docker-compose || \
+curl -fL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/lib/docker/cli-plugins/docker-compose
+#make it executeable 
+chmod +x /usr/libexec/docker/cli-plugins/docker-compose || /usr/local/lib/docker/cli-plugins/docker-compose
+#show plugin file and verify version
+ls -l /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins
+docker compose version || echo "docker compose not available"
+
+goto localhost 8080 to see jenkins webUI
+got password:
+docker exec -it jenkins cat /var/jenkins_home/secrets/initialAdminPassword
