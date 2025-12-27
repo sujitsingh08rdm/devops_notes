@@ -367,3 +367,142 @@ kubectl create deployment frontend --image=mern-frontend:dev
 kubectl set env deployment/frontend VITE_API_URL=http://localhost:5000
 kubectl expose deployment frontend --name=frontend-svc --port=80 target-port=5173 --type=NodePort
 
+
+DOCKER PART 2 =>
+
+container is disposable  , we can create -> remove -> redeploy -> inside its filesystem is gone . Any data inside the container is temporary.
+Thats where docker volumes come in play.
+Docker Volume => this is storage mechanism that live outside of container filesystem, and can be mounted inside the container.
+so it goes like container write data in volume -> container removed, data is still in volume -> new container created then re attach the same volume -> we can see the old data.
+
+docker volume create demo-vol -> create a volume called demo-vol
+docker volume ls -> to view all volumes created
+docker volume inspect volume_name -> to view the volume
+
+so we will do a example where we start a mongo container attach this volume , write a data and stop and remove the container again crete a container and attach this volume and see if data is persistant of not
+
+docker run -d --name demo-mongo -v demo-vol:/data/db mongo:6.0 -> to create a mongo containerw ith the demo-vol as volume 
+docker exec -it demo-mongo mongosh -> It simply gives you direct access to the DB inside the container for manual querying i -> interactive (keeps STDIN open so you can type) -t → allocates a terminal (TTY)
+
+use testdb -> Switch the shell context to a database named testdb, If the database does not exist yet, MongoDB will not create it immediately it gets created only when we insert data into it
+db.getName()
+db.demos.insertOne({name: "demo", ts: new Date()}) -> to insert a new data
+db.demos.countDocuments()
+db.demos.find().pretty() -> to get the all documents 
+quit() -> to quit mongosh
+docker rm -f demo-mongo -> to remove the container
+
+docker run -d --name demo-mongo2 -v demo-vol:/data/db mongo:6.0 -> create a new container 
+docker exec -it demo-mongo2 mongosh
+
+use testdb
+db.getName()
+db.demos.countDocuments()
+db.demos.find().pretty() -> we see data is persisted
+quit()
+
+Networking => 
+lets say we have 5 countainer -> container cant talk to each other unless we explicitly put in same container.
+ex. banking app -> api servers talks to db over internal networks , so keep db in private network only backend server can access the DB.
+
+bridge(default)
+user defined bridge
+
+docker network ls
+docker network create mern-net -> to create a network
+docker network inspect mern-net
+docker network rm 516906fac9d4 -> to delete a network
+docker network create mern-net
+
+Registry => central repository for storing and distributing docker images, its like github code but for docker coantainer images
+
+For practice we will not use the cloud mongo rather then a mongo running on docker container.
+change mongo_url to mongodb://mongo:27017/taskdb
+
+docker_compose.yml ->
+
+------------------------------------------------
+
+services:
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - mern-net
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: backend01
+    restart: unless-stopped
+    env_file:
+      - ./server/.env
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongo
+    networks:
+      - mern-net
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:5000/api
+    container_name: frontend01
+    restart: always
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks: 
+      - mern-net
+
+  volumes: mongo-data
+
+  networks:
+    mern-net:
+      driver: bridge
+
+--------------------------------------------------------------
+
+then docker compose up --build -d -> to build the container
+docker ps 
+docker volume ls
+docker volume inspect "volId"
+docker network inspect 
+
+go to http://localhost:5173/auth/login to verify 
+
+Now lets build backend image by 
+docker build -t mern-backend:local ./server
+
+now frontend image
+ docker build -t mern-frontend:local ./client --build-arg VITE_API_URL=http://localhost:5000
+
+Now tag it for backend
+docker tag mern-backend:local sujitsingh08rdm/mern-backend:1.0.0
+also for frontend
+docker tag mern-frontend:local sujitsingh08rdm/mern-frontend:1.0.0
+
+Now we have to push it both frontend and backedn
+using
+docker push sujitsingh08rdm/mern-frontend:1.0.0 same for backend
+now remove the local copy
+docker rmi mern-backend:local mern-frontend:local
+
+now we will pull using 
+docker pull sujitsingh08rdm/mern-backend:1.0.0
+same for frontend , but check if network is present or not using docker network create mern-net
+Now we have to run my mongo with named volume so taht data persists
+docker run -d --name demo-mongo --network mern-net -v mongo-data:/data/db mongo:6.0
+now run the backedn with current mongo host.
+docker run -d --name demo-backend --network mern-net -e MONGO_URI="mongodb://demo-mongo:27017/taskdb" -p 5000:5000 sujitsingh08rdm/mern-backend:1.0.0
+same for frontend
+docker run -d --name demo-frontend --network mern-net -p 5173:5173 sujitsingh08rdm/mern-frontend:1.0.0
+docker ps to verify
+
