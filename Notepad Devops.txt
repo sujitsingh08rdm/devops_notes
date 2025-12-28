@@ -568,3 +568,95 @@ docker compose version || echo "docker compose not available"
 goto localhost 8080 to see jenkins webUI
 got password:
 docker exec -it jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+
+JENKINS JOB CREATION :
+Go o home page, create new item a freestyle job then item namethen add description then add build step then shell and just echo for now. then Build Now to Build.
+create new item , job with parameters : check this project is parameterized checkbox, add string parameter with dev, add execte shell as build echo "Deploying to env: $ENV"
+chaining jobs -> Job B is depended on Job A: create a freestyle job A that logs "this is job a", and a one more job B which log "this is job b which runs after job a". then on job a posst build action select job b.
+now lets create a new freestyle job : with artifacts echo "report generated at :$(date)" > report.txt .then add a post build action archieve the artifacts "report.txt"
+
+lets test jenkins with my ecomm project
+create a Jenkinsfile in root
+
+-------------------------------------------------------------------------------------------------------------
+pipeline {
+    agent any
+
+    environment { 
+    FRONTEND_IMAGE="mern-frontend:jenkins"
+    BACKEND_IMAGE="mern-backend:jenkins"
+    PORT="5000"
+    MONGO_URI="mongodb://mongo:27017/taskdb"
+    }
+
+    stages {
+        stage("Checkout Code"){
+            steps {
+                git url: 'https://github.com/sujitsingh08rdm/devops-ecommerce-practice.git' , branch: 'main'
+            }
+        }
+        stage("Prepare .env"){
+            steps {
+              sh '''
+                mkdir -p server 
+                cat > server/.env <<EOF
+                PORT=$PORT
+                MONGO_URI=$MONGO_URI
+                CLIENT_BASE_URL=$CLIENT_BASE_URL
+                CLOUDINARY_API_KEY=$CLOUDINARY_API_KEY
+                CLOUDINARY_API_SCRIPT=$CLOUDINARY_API_SCRIPT
+                PAYPAL_CLIENT_ID=$PAYPAL_CLIENT_ID
+                PAYPAL_CLIENT_SECRET=$PAYPAL_CLIENT_SECRET
+                CLOUDINARY_CLOUD_NAME=$CLOUDINARY_CLOUD_NAME
+                EOF
+                '''
+            }
+        }
+        stage("Build Docker Images"){
+            steps {
+                sh '''
+                echo "building backend image..."
+                docker build -t $BACKEND_IMAGE ./server
+
+                echo "building frontend image..."
+                docker build -t $FRONTEND_IMAGE ./client --build-arg VITE_API_URL=http://localhost:5000
+                '''
+            }
+        }
+        stage("Run these images with docker compose"){
+            steps {
+                sh '''
+                echo "starting mern app with docker compose"
+                docker compose up -d
+                echo "show running containers"
+                docker ps
+                echo "===== Backend logs ====="
+                docker logs backed || true
+                echo "===== Frontend logs ====="
+                docker logs frontend || true
+                '''
+            }
+        }
+    }
+}
+-------------------------------------------------------------------------------------------------------------
+
+push changes in main branch
+create new item in jenkins -> mern-deveops-app select pipeline
+dicard old buuild -> 10, do not allow concurrent build
+girhub project
+triggers poll SCM : schedule H/5 * * * * (MINUTE HOUR DAY MONTH WEEKDAY)
+import pipeline script from SCM
+save and build
+
+
+isse -> update buildx
+docker exec -u 0 -it jenkins bash
+
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -SL https://github.com/docker/buildx/releases/download/v0.28.0/buildx-v0.28.0.linux-amd64 \
+  -o /usr/local/lib/docker/cli-plugins/docker-buildx
+chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
+docker buildx version
+
+docker restart jenkins
